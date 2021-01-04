@@ -11,32 +11,80 @@
     <meta charset="UTF-8">
     <title>Pakistan</title>
     <style>
-        #mapid { height: 900px; }
+        #mapid {
+             display: inline-block;
+             height: 700px; 
+        width: 900px;
+        }
+        .info {
+                width: 187px;
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+.info h4 {
+    margin: 0 0 5px;
+    color: #777;
+}
+        .form_container{
+            display: block;
+            float: right;
+            margin-left: 45px;
+        }
+.main{
+    float: left;
+}
+.list-box{
+    float: right;
+    width: 100%;
+}
+#tag{
+    width: 199px;
+    height: 23px;
 
+}
+#color{
+    float: right;
+    width: 20px;
+    height: 100px;
+    border: none;
+}
     </style>
 </head>
 <body>
-<a href="{% url 'areas' %}">Refresh</a>
-<form method="post">{%csrf_token%} 
-  <input hidden type="text" id="selected_areas" name="selected_areas">
-  <input type="text" placeholder="Tag"  name="tag" >
-  <input hidden type="text" id="hex" name="color">
-  <input type="color" id="color">  
-  <select name="tags_from_list" multiple id="">
-  {% for i in tags %}
-    <option value={{i}}>{{i}}</option>
-{% endfor %}
-</select>
-<input type="submit">
-</form>
+<div class="main">
+<a href="{% url 'areas' %}" style="display: block;">Refresh</a>
 
 
 <div id="mapid"></div>
+<div class="form_container">
+    <form method="post" >{%csrf_token%} 
+      <input hidden type="text" id="selected_areas" name="selected_areas">
+      <div class="text-box">
+        <input type="text" id="tag" placeholder="Tag"  name="tag" >
+        <input hidden type="text" id="hex" name="color">
+    </div>
+    <div class="list-box" >
+        <input type="color" id="color">  
 
-
+        <select name="tags_from_list" multiple id="" style="width: 185px; height: 100px;  ">
+            {% for i in tags %}
+                <option value={{i}}>{{i}}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div  >
+    <input type="submit" style="border: none;" >
+    </div>
+    </form>
+</div>
+</div>
 
 <script>
-    var mymap = L.map('mapid').setView([31.4123007, 73.0995525], 6);
+    var mymap = L.map('mapid').setView([31.4123007, 73.0995525],6);
  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 				maxZoom: 19,
 				attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -45,7 +93,7 @@
 
 
 function style(feature) {
-    console.log('this is color',feature)
+    
     return {
         fillColor: feature.properties.selected_color,
         weight: 2,
@@ -63,11 +111,9 @@ function highlightFeature(e) {
         dashArray: '',
         fillOpacity: 0.7
     });
-
+    info.update(layer.feature.properties);
 document.getElementById('selected_areas').value +=','+ layer.feature.properties['name']
-    // if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-    //     layer.bringToFront();
-    // }
+   
 }
 
 var geojson;
@@ -81,23 +127,55 @@ function onEachFeature(feature, layer) {
     });
    
 }
+function scnd(e) {
+    var layer = e.target;
+    info.update(layer.feature.properties);
+   
+}
+function onEachFeature2(feature, layer) {
+    layer.on({
+        mouseover: '',
+        mouseout: '',
+        click: scnd
 
+    });
+   
+}
 
 {% for i in areas %}
-geojson= L.geoJSON([{{i|geojsonfeature:"name" |safe}}],{onEachFeature:onEachFeature}).addTo(mymap).bindPopup(`{{i}}`);
+geojson= L.geoJSON([{{i|geojsonfeature:"name,tag" |safe}}],{onEachFeature:onEachFeature}).addTo(mymap).bindPopup(`<h4>Area:{{i}}</h4>`);
 {% endfor %}
 
 {%for j in selected_areas%}
-geojson= L.geoJSON([{{j|geojsonfeature:"name,selected_color" |safe}}],{style:style}).addTo(mymap).bindPopup(`{{j}}`);
+geojson= L.geoJSON([{{j|geojsonfeature:"name,selected_color,tag" |safe}}],{style:style,onEachFeature:onEachFeature2}).addTo(mymap).
+bindPopup(`<h4>Tag:{{j}}</h4>`);
 {%endfor%}
 
+var info = L.control();
 
+info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+};
+
+// method that we will use to update the control based on feature properties passed
+info.update = function (props) {
+    console.log('we area props',props)
+    this._div.innerHTML = '<h3>Name:</h3>' +  (props ?
+          props.name + '</b><br />'+'<hr>' + '<h3>Tag:</h3>'+props.tag +'':'');
+};
+
+info.addTo(mymap);
+
+// ---color selection
 let color_input = document.getElementById('color');
 let hexinput = document.getElementById('hex');
 color_input.addEventListener('input',()=>{
 let color = color_input.value;
 hexinput.value = color;  
  })
+ //---
 </script>
 </body>
 </html>
