@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {% load static %}
+{%load geojson_tags%}
+{% load leaflet_tags %}
+  {% leaflet_js %}
+  {% leaflet_css %}
+
+    <meta charset="UTF-8">
+    <title>Pakistan</title>
+    <style>
+        #mapid { height: 900px; }
+
+    </style>
+</head>
+<body>
+<a href="{% url 'areas' %}">Refresh</a>
+<form method="post">{%csrf_token%} 
+  <input hidden type="text" id="selected_areas" name="selected_areas">
+  <input type="text" placeholder="Tag"  name="tag" >
+  <input hidden type="text" id="hex" name="color">
+  <input type="color" id="color">  
+  <select name="tags_from_list" multiple id="">
+  {% for i in tags %}
+    <option value={{i}}>{{i}}</option>
+{% endfor %}
+</select>
+<input type="submit">
+</form>
+
+
+<div id="mapid"></div>
+
+
+
+<script>
+    var mymap = L.map('mapid').setView([31.4123007, 73.0995525], 6);
+ L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				maxZoom: 19,
+				attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(mymap);
+
+
+
+function style(feature) {
+    console.log('this is color',feature)
+    return {
+        fillColor: feature.properties.selected_color,
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+}
+function highlightFeature(e) {
+    var layer = e.target;
+    layer.setStyle({
+        weight: 5,
+        color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+
+document.getElementById('selected_areas').value +=','+ layer.feature.properties['name']
+    // if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+    //     layer.bringToFront();
+    // }
+}
+
+var geojson;
+
+function onEachFeature(feature, layer) {
+    layer.on({
+        mouseover: '',
+        mouseout: '',
+        click: highlightFeature
+
+    });
+   
+}
+
+
+{% for i in areas %}
+geojson= L.geoJSON([{{i|geojsonfeature:"name" |safe}}],{onEachFeature:onEachFeature}).addTo(mymap).bindPopup(`{{i}}`);
+{% endfor %}
+
+{%for j in selected_areas%}
+geojson= L.geoJSON([{{j|geojsonfeature:"name,selected_color" |safe}}],{style:style}).addTo(mymap).bindPopup(`{{j}}`);
+{%endfor%}
+
+
+let color_input = document.getElementById('color');
+let hexinput = document.getElementById('hex');
+color_input.addEventListener('input',()=>{
+let color = color_input.value;
+hexinput.value = color;  
+ })
+</script>
+</body>
+</html>
